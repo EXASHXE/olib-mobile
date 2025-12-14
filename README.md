@@ -11,6 +11,8 @@
 
 [Download APK](https://bookbook.space) • [Report Bug](https://github.com/booklover999/freebooks-app/issues) • [Request Feature](https://github.com/booklover999/freebooks-app/issues)
 
+**English** | **[简体中文](README_ZH.md)**
+
 </div>
 
 ---
