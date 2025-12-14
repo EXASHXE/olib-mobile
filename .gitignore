@@ -1,0 +1,88 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+pubspec.lock
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/.gradle/
+/android/local.properties
+/android/app/build/
+*.jks
+*.keystore
+
+# iOS
+/ios/Pods/
+/ios/.symlinks/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Runner.xcworkspace/
+
+# Generated files
+*.freezed.dart
+*.g.dart
+
+# Large binary files
+*.apk
+*.ipa
+*.aab
+*.dSYM.zip
+*.dSYM
+
+# Publish page
+publish_page/
+api_dump/
+test/
+
+# ========================================
+# SENSITIVE SOURCE CODE - DO NOT SHARE
+# ========================================
+lib/services/zlibrary_api.dart
+lib/test_api_structure.dart
+lib/test_email_verification.dart
+lib/api_dump.dart
+lib/debug_login.dart
+
+# Environment / Secrets
+.env
+.env.*
+secrets/
+*.pem
+*.p12
