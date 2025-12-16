@@ -234,6 +234,14 @@ class SettingsScreen extends ConsumerWidget {
                 title: Text(_isZhLocale(context) ? '下载目录' : 'Download Directory'),
                 subtitle: Consumer(
                   builder: (context, ref, _) {
+                    if (Platform.isAndroid) {
+                      // Android 10+ uses MediaStore, show simplified text
+                      return Text(
+                        _isZhLocale(context) ? '系统下载文件夹 (MediaStore)' : 'System Downloads (MediaStore)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    }
                     final path = ref.watch(downloadPathProvider);
                     final displayPath = (path != null && path.isNotEmpty)
                         ? path
@@ -387,7 +395,7 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: Text(AppLocalizations.of(context).get('version')),
-                  trailing: const Text('1.0.0'),
+                  trailing: const Text('1.0.3'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.share_rounded),
@@ -618,37 +626,58 @@ class SettingsScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // On Android, show predefined locations instead of folder picker
+              // On Android 10+, MediaStore handles downloads automatically
               if (Platform.isAndroid) ...[
                 ListTile(
                   leading: const Icon(Icons.download, color: AppColors.primary),
-                  title: Text(isZh ? '下载文件夹 (Download)' : 'Download Folder'),
-                  subtitle: Text('/storage/emulated/0/Download'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ref.read(downloadPathProvider.notifier).setDownloadPath('/storage/emulated/0/Download');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(isZh ? '下载目录已设置为 Download' : 'Download directory set to Download'),
-                        backgroundColor: Colors.green,
+                  title: Text(isZh ? '系统下载文件夹' : 'System Downloads Folder'),
+                  subtitle: Text(
+                    isZh 
+                        ? '使用 MediaStore API 保存到公共下载目录'
+                        : 'Uses MediaStore API to save to public Downloads',
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isZh ? '推荐' : 'Recommended',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.book, color: AppColors.primary),
-                  title: Text(isZh ? '文档文件夹 (Documents)' : 'Documents Folder'),
-                  subtitle: Text('/storage/emulated/0/Documents'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    ref.read(downloadPathProvider.notifier).setDownloadPath('/storage/emulated/0/Documents');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(isZh ? '下载目录已设置为 Documents' : 'Download directory set to Documents'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  },
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isZh 
+                                ? '下载的书籍将保存到系统"下载"文件夹，可在文件管理器中找到。'
+                                : 'Downloaded books will be saved to the system Downloads folder, accessible via file manager.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ] else ...[
                 // On desktop platforms, use file picker
@@ -672,20 +701,25 @@ class SettingsScreen extends ConsumerWidget {
                     }
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.restore, color: AppColors.textSecondary),
+                  title: Text(isZh ? '恢复默认' : 'Reset to Default'),
+                  subtitle: Text(isZh ? '使用应用默认文档目录' : 'Use app default documents directory'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ref.read(downloadPathProvider.notifier).clearDownloadPath();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isZh ? '已恢复默认目录' : 'Reset to default directory'),
+                      ),
+                    );
+                  },
+                ),
               ],
-              ListTile(
-                leading: const Icon(Icons.restore, color: AppColors.textSecondary),
-                title: Text(isZh ? '恢复默认' : 'Reset to Default'),
-                subtitle: Text(isZh ? '使用应用默认文档目录' : 'Use app default documents directory'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref.read(downloadPathProvider.notifier).clearDownloadPath();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isZh ? '已恢复默认目录' : 'Reset to default directory'),
-                    ),
-                  );
-                },
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(isZh ? '关闭' : 'Close'),
               ),
             ],
           ),

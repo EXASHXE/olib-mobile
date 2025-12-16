@@ -15,6 +15,7 @@ import 'screens/settings/history_screen.dart';
 import 'screens/downloads/local_downloads_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/similar/similar_books_screen.dart';
+import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/ad_service.dart';
 import 'l10n/app_localizations.dart';
@@ -82,6 +83,10 @@ class MyApp extends ConsumerWidget {
         AppRoutes.downloads: (context) => const LocalDownloadsScreen(),
         AppRoutes.settings: (context) => const SettingsScreen(),
         AppRoutes.similarBooks: (context) => const SimilarBooksScreen(),
+        AppRoutes.reader: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as ReaderArgs;
+          return ReaderScreen(url: args.url, title: args.title);
+        },
       },
     );
   }

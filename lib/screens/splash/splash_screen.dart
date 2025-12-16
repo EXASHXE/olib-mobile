@@ -42,7 +42,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<bool> _checkNetwork() async {
     try {
       final domain = ref.read(domainProvider);
-      final uri = Uri.parse('https://$domain/');
+      // Use API endpoint for testing (same as domain selector)
+      final uri = Uri.parse('https://$domain/eapi/info/languages');
       
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 5);
@@ -52,8 +53,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         final response = await request.close().timeout(
           const Duration(seconds: 8),
         );
-        await response.drain();
-        return response.statusCode >= 200 && response.statusCode < 400;
+        
+        // Read response body to check for success
+        final bodyBytes = await response.expand((chunk) => chunk).toList();
+        final body = String.fromCharCodes(bodyBytes);
+        
+        // Check if API returns success
+        final isSuccess = body.contains('"success":1') || 
+                          body.contains('"success": 1') ||
+                          (response.statusCode >= 200 && response.statusCode < 300);
+        return isSuccess;
       } finally {
         client.close();
       }

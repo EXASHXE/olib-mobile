@@ -7,11 +7,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/book.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/download_provider.dart';
+import '../../providers/domain_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/update_service.dart';
 import '../../routes/app_routes.dart';
 import '../similar/similar_books_screen.dart';
+import '../reader/reader_screen.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   const BookDetailScreen({super.key});
@@ -240,6 +243,64 @@ class BookDetailScreen extends ConsumerWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
+                        ),
+                      ),
+                    ),
+                  ],
+                  
+                  // Read Online Button
+                  if (book.readOnlineUrl != null && book.readOnlineUrl!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // Get user's custom domain and credentials
+                          final customDomain = ref.read(domainProvider);
+                          final authState = ref.read(authProvider);
+                          final user = authState.user;
+                          
+                          // Build the final URL
+                          String url = book.readOnlineUrl!;
+                          
+                          // Remove 'cdn.' prefix if present (e.g., cdn.reader.z-library.sk -> reader.z-library.sk)
+                          url = url.replaceAll(
+                            RegExp(r'cdn\.reader\.'),
+                            'reader.',
+                          );
+                          
+                          // Replace reader.z-library.sk with reader.{customDomain}
+                          url = url.replaceAll(
+                            RegExp(r'reader\.[a-zA-Z0-9.-]+'),
+                            'reader.$customDomain',
+                          );
+                          
+                          // Also replace any z-library.sk references in the URL
+                          url = url.replaceAll(
+                            RegExp(r'z-library\.[a-zA-Z]+'),
+                            customDomain,
+                          );
+                          
+                          // Append user credentials if available
+                          if (user != null) {
+                            final separator = url.contains('?') ? '&' : '?';
+                            url = '$url${separator}remix_userkey=${user.remixUserkey}&remix_userid=${user.id}';
+                          }
+                          
+                          // Navigate to ReaderScreen
+                          Navigator.of(context).pushNamed(
+                            AppRoutes.reader,
+                            arguments: ReaderArgs(
+                              url: url,
+                              title: book.title,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.menu_book),
+                        label: Text(AppLocalizations.of(context).get('read')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
                         ),
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:downloadsfolder/downloadsfolder.dart';
 import '../models/book.dart';
 import '../services/zlibrary_api.dart';
 import '../services/storage_service.dart';
@@ -50,7 +51,64 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   final StorageService _storage = StorageService();
   final Map<String, CancelToken> _cancelTokens = {};
 
-  DownloadNotifier(this._api) : super([]);
+  DownloadNotifier(this._api) : super([]) {
+    // Load persisted download history on initialization
+    _loadDownloadHistory();
+  }
+
+  /// Load completed downloads from storage on app startup
+  Future<void> _loadDownloadHistory() async {
+    try {
+      final history = await _storage.getDownloadHistory();
+      final List<DownloadTask> loadedTasks = [];
+      
+      for (final entry in history.entries) {
+        final bookId = entry.key;
+        final data = entry.value as Map<String, dynamic>;
+        
+        final filePath = data['filePath'] as String?;
+        
+        // Only add if file still exists
+        if (filePath != null) {
+          final file = File(filePath);
+          final fileExists = await file.exists();
+          
+          // Create a minimal Book object from stored data
+          final book = Book(
+            id: int.tryParse(bookId) ?? 0,
+            title: data['title'] as String? ?? 'Unknown',
+            author: data['author'] as String?,
+            cover: data['cover'] as String?,
+            extension: data['extension'] as String?,
+          );
+          
+          loadedTasks.add(DownloadTask(
+            id: bookId,
+            book: book,
+            progress: 1.0,
+            status: fileExists ? DownloadStatus.completed : DownloadStatus.error,
+            filePath: filePath,
+            error: fileExists ? null : 'File not found',
+          ));
+        }
+      }
+      
+      // Update state with loaded tasks
+      if (loadedTasks.isNotEmpty) {
+        state = loadedTasks;
+      }
+    } catch (e) {
+      // Ignore errors during loading, start with empty state
+    }
+  }
+
+  /// Check if we should use MediaStore API (Android 10+)
+  bool get _shouldUseMediaStore {
+    if (!Platform.isAndroid) return false;
+    // Android 10 is API 29
+    // We always use MediaStore on Android since downloadsfolder handles version checks internally
+    return true;
+  }
 
   /// Check if file already exists for a book
   /// Returns the file path if exists, null otherwise
@@ -76,33 +134,38 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     return null;
   }
 
-  /// Build save path for a book
+  /// Build a safe filename for a book
+  String _buildSafeFileName(Book book) {
+    String safeTitle = book.title.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
+    
+    if (safeTitle.isEmpty) {
+      safeTitle = 'book_${book.id}';
+      if (book.author != null && book.author!.isNotEmpty) {
+        final safeAuthor = book.author!.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
+        if (safeAuthor.isNotEmpty) {
+          safeTitle = '$safeAuthor - $safeTitle';
+        }
+      }
+    }
+    
+    final ext = book.extension ?? 'epub';
+    return '$safeTitle.$ext';
+  }
+
+  /// Build save path for a book (for non-MediaStore platforms)
   Future<String?> _buildSavePath(Book book) async {
     try {
       String baseDir;
       final customPath = await _storage.getDownloadPath();
       
-      if (customPath != null && customPath.isNotEmpty && !Platform.isIOS) {
+      if (customPath != null && customPath.isNotEmpty && !Platform.isIOS && !_shouldUseMediaStore) {
         baseDir = customPath;
       } else {
         final appDocDir = await getApplicationDocumentsDirectory();
         baseDir = appDocDir.path;
       }
       
-      String safeTitle = book.title.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
-      
-      if (safeTitle.isEmpty) {
-        safeTitle = 'book_${book.id}';
-        if (book.author != null && book.author!.isNotEmpty) {
-          final safeAuthor = book.author!.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
-          if (safeAuthor.isNotEmpty) {
-            safeTitle = '$safeAuthor - $safeTitle';
-          }
-        }
-      }
-      
-      final ext = book.extension ?? 'epub';
-      final fileName = '$safeTitle.$ext';
+      final fileName = _buildSafeFileName(book);
       return '$baseDir/$fileName';
     } catch (e) {
       return null;
@@ -113,51 +176,45 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   Future<void> startDownload(Book book) async {
     final id = book.id.toString();
 
-    // Check if already exists
+    // Check if already downloading
     if (state.any((t) => t.id == id && t.status == DownloadStatus.downloading)) {
       return;
     }
 
-    // Add or update task to pending/downloading
+    // Add or update task to pending
     _updateOrAddTask(DownloadTask(id: id, book: book, status: DownloadStatus.pending));
 
     try {
-      // Determine download directory
-      String baseDir;
-      final customPath = await _storage.getDownloadPath();
-      
-      // Use custom path on Android, Linux, Windows, macOS (not iOS due to sandbox restrictions)
-      if (customPath != null && customPath.isNotEmpty && !Platform.isIOS) {
-        baseDir = customPath;
-        // Ensure directory exists
-        final dir = Directory(baseDir);
-        if (!await dir.exists()) {
-          await dir.create(recursive: true);
-        }
+      final fileName = _buildSafeFileName(book);
+      String tempPath;
+      String finalPath;
+
+      if (_shouldUseMediaStore) {
+        // Android 10+: Download to temp directory first, then copy via MediaStore
+        final tempDir = await getTemporaryDirectory();
+        tempPath = '${tempDir.path}/$fileName';
+        // Final path will be determined after copying to Downloads
+        finalPath = tempPath; // Placeholder, will be updated
       } else {
-        final appDocDir = await getApplicationDocumentsDirectory();
-        baseDir = appDocDir.path;
-      }
-      
-      // Use clean filename - only remove characters that are problematic for file systems
-      // Preserve non-ASCII characters (Chinese, Japanese, Korean, etc.)
-      // Remove: / \ : * ? " < > | and control characters
-      String safeTitle = book.title.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
-      
-      // Fallback if title becomes empty (e.g., only contained special characters)
-      if (safeTitle.isEmpty) {
-        safeTitle = 'book_${book.id}';
-        if (book.author != null && book.author!.isNotEmpty) {
-          final safeAuthor = book.author!.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
-          if (safeAuthor.isNotEmpty) {
-            safeTitle = '$safeAuthor - $safeTitle';
+        // Other platforms: Use custom path or app documents directory
+        String baseDir;
+        final customPath = await _storage.getDownloadPath();
+        
+        if (customPath != null && customPath.isNotEmpty && !Platform.isIOS) {
+          baseDir = customPath;
+          // Ensure directory exists
+          final dir = Directory(baseDir);
+          if (!await dir.exists()) {
+            await dir.create(recursive: true);
           }
+        } else {
+          final appDocDir = await getApplicationDocumentsDirectory();
+          baseDir = appDocDir.path;
         }
+        
+        tempPath = '$baseDir/$fileName';
+        finalPath = tempPath;
       }
-      
-      final ext = book.extension ?? 'epub';
-      final fileName = '$safeTitle.$ext';
-      final savePath = '$baseDir/$fileName';
 
       // Update to downloading
       _updateTask(id, (t) => t.copyWith(status: DownloadStatus.downloading, progress: 0.0));
@@ -166,11 +223,11 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       final cancelToken = CancelToken();
       _cancelTokens[id] = cancelToken;
 
-      // Start download
+      // Start download to temp/target path
       await _api.downloadBook(
         book.id.toString(),
         book.hash ?? '',
-        savePath,
+        tempPath,
         onProgress: (received, total) {
           if (total != -1) {
             final progress = received / total;
@@ -180,19 +237,58 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         cancelToken: cancelToken,
       );
 
+      // On Android 10+, copy to public Downloads folder via MediaStore
+      if (_shouldUseMediaStore) {
+        try {
+          final tempFile = File(tempPath);
+          final result = await copyFileIntoDownloadFolder(
+            tempFile.path,
+            fileName,
+          );
+          
+          if (result != null) {
+            finalPath = result.path;
+          } else {
+            // Fallback: keep file in app directory
+            final appDocDir = await getApplicationDocumentsDirectory();
+            final fallbackPath = '${appDocDir.path}/$fileName';
+            await tempFile.copy(fallbackPath);
+            finalPath = fallbackPath;
+          }
+          
+          // Clean up temp file
+          if (await tempFile.exists()) {
+            await tempFile.delete();
+          }
+        } catch (e) {
+          // If MediaStore fails, keep file in temp location
+          // Try to move to app documents as fallback
+          final appDocDir = await getApplicationDocumentsDirectory();
+          final fallbackPath = '${appDocDir.path}/$fileName';
+          final tempFile = File(tempPath);
+          if (await tempFile.exists()) {
+            await tempFile.copy(fallbackPath);
+            await tempFile.delete();
+          }
+          finalPath = fallbackPath;
+        }
+      }
+
       // Complete
       _updateTask(id, (t) => t.copyWith(
         status: DownloadStatus.completed,
         progress: 1.0,
-        filePath: savePath,
+        filePath: finalPath,
       ));
       
-      // Save to download history
+      // Save to download history (with cover and extension for persistence)
       await _storage.addToDownloadHistory(
         book.id.toString(),
         book.title,
         book.author,
-        savePath,
+        finalPath,
+        cover: book.cover,
+        extension: book.extension,
       );
       
       _cancelTokens.remove(id);
@@ -231,6 +327,9 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         await file.delete();
       }
     }
+    
+    // Remove from persistent storage
+    await _storage.removeFromDownloadHistory(id);
     
     // Remove from state
     state = state.where((t) => t.id != id).toList();

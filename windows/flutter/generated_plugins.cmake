@@ -3,6 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  downloadsfolder
+  flutter_inappwebview_windows
   permission_handler_windows
   rive_native
   share_plus

@@ -81,8 +81,14 @@ class StorageService {
   // ===== Download History Methods =====
   
   /// Add book to download history
-  /// Stores: {bookId: {title, author, filePath, downloadTime}}
-  Future<void> addToDownloadHistory(String bookId, String title, String? author, String filePath) async {
+  /// Stores: {bookId: {title, author, filePath, cover, extension, downloadTime}}
+  Future<void> addToDownloadHistory(
+    String bookId, 
+    String title, 
+    String? author, 
+    String filePath, 
+    {String? cover, String? extension}
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final historyJson = prefs.getString(_keyDownloadHistory) ?? '{}';
     final history = Map<String, dynamic>.from(jsonDecode(historyJson));
@@ -91,6 +97,8 @@ class StorageService {
       'title': title,
       'author': author,
       'filePath': filePath,
+      'cover': cover,
+      'extension': extension,
       'downloadTime': DateTime.now().toIso8601String(),
     };
     
