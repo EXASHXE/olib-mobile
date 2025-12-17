@@ -241,13 +241,40 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       if (_shouldUseMediaStore) {
         try {
           final tempFile = File(tempPath);
-          final result = await copyFileIntoDownloadFolder(
+          // copyFileIntoDownloadFolder returns bool? in version 3.0.0
+          final success = await copyFileIntoDownloadFolder(
             tempFile.path,
             fileName,
           );
           
-          if (result != null) {
-            finalPath = result.path;
+          if (success == true) {
+            // File was copied to Downloads folder via MediaStore
+            // We need to determine the public Download path. 
+            // getDownloadsDirectory() returns the app-private path on Android, so we can't use it.
+            // valid path example: /storage/emulated/0/Download
+            // externalDir example: /storage/emulated/0/Android/data/com.example/files
+            
+            String? downloadsPath;
+            try {
+              final externalDir = await getExternalStorageDirectory();
+              if (externalDir != null) {
+                final path = externalDir.path;
+                // Find where the app-specific part starts
+                final androidIndex = path.indexOf('/Android/data');
+                if (androidIndex != -1) {
+                  // Extract the root (e.g., /storage/emulated/0)
+                  final root = path.substring(0, androidIndex);
+                  downloadsPath = '$root/Download';
+                }
+              }
+            } catch (_) {
+              // Ignore errors, fall back to default
+            }
+            
+            // Fallback if we couldn't derive the path
+            downloadsPath ??= '/storage/emulated/0/Download';
+            
+            finalPath = '$downloadsPath/$fileName';
           } else {
             // Fallback: keep file in app directory
             final appDocDir = await getApplicationDocumentsDirectory();

@@ -387,8 +387,8 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 220,
               childAspectRatio: 0.62, // Taller cards
               crossAxisSpacing: 16,
               mainAxisSpacing: 20,

@@ -8,8 +8,7 @@ final domainListProvider = Provider<Map<String, String>>((ref) {
     'Line 1 (CN)': 'zkoo.site',
     'Line 2 (CN)': 'zlibrary-iran.ir',
     'Line 3 (CN)': 'freezlib.me',
-    'Line 4 (CN)': 'fuckfbi.ru',
-    'Line 5 (CN)': 'pkuedu.online',
+    'Line 4 (CN)': 'pkuedu.online',
     'Global': 'z-library.sk',
   };
 });

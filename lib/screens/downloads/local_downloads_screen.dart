@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:downloadsfolder/downloadsfolder.dart';
 import '../../providers/download_provider.dart';
 import '../../widgets/empty_state.dart';
 import '../../theme/app_colors.dart';
@@ -13,7 +14,7 @@ import '../../l10n/app_localizations.dart';
 /// Check if platform supports opening folder in file manager
 bool get _canOpenFolder {
   if (kIsWeb) return false;
-  return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  return Platform.isWindows || Platform.isMacOS || Platform.isLinux || Platform.isAndroid;
 }
 
 class LocalDownloadsScreen extends ConsumerWidget {
@@ -31,6 +32,28 @@ class LocalDownloadsScreen extends ConsumerWidget {
           elevation: 0,
           title: Text(AppLocalizations.of(context).get('downloads'), style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
           centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.folder_open, color: AppColors.primary),
+              tooltip: AppLocalizations.of(context).get('open_folder') ?? 'Open Folder',
+              onPressed: () async {
+                try {
+                  final success = await openDownloadFolder();
+                  if (!success && context.mounted) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not open download folder')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(60),
             child: Container(

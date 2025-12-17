@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io' show Platform;
 import '../../providers/auth_provider.dart';
+import 'package:downloadsfolder/downloadsfolder.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/ad_provider.dart';
 import '../../services/ad_service.dart';
@@ -677,6 +678,29 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final success = await openDownloadFolder();
+                            if (!success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(isZh ? '无法打开文件夹' : 'Could not open folder')),
+                              );
+                            } else {
+                              Navigator.pop(context);
+                            }
+                          },
+                          icon: const Icon(Icons.folder_open),
+                          label: Text(isZh ? '打开下载文件夹' : 'Open Download Folder'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ] else ...[
