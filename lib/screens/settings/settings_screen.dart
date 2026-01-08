@@ -6,9 +6,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io' show Platform;
+import 'dart:io';
 import '../../providers/auth_provider.dart';
-import 'package:downloadsfolder/downloadsfolder.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/ad_provider.dart';
 import '../../services/ad_service.dart';
@@ -19,116 +18,8 @@ import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/domain_selector.dart';
 import '../../l10n/app_localizations.dart';
-
-/// Helper to get locale key for comparison
-String? _getLocaleKey(Locale? locale) {
-  if (locale == null) return null;
-  return getLocaleKey(locale);
-}
-
-/// Check if current locale is Chinese
-bool _isZhLocale(BuildContext context) {
-  return Localizations.localeOf(context).languageCode == 'zh';
-}
-
-/// Check for updates and show dialog
-Future<void> _checkForUpdates(BuildContext context) async {
-  final isZh = _isZhLocale(context);
-  
-  // Show loading dialog
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      content: Row(
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(width: 20),
-          Text(isZh ? '正在检查更新...' : 'Checking for updates...'),
-        ],
-      ),
-    ),
-  );
-  
-  // Force check (bypass cache)
-  final hasUpdate = await UpdateService.checkForUpdate(force: true);
-  
-  // Close loading dialog
-  if (context.mounted) Navigator.of(context).pop();
-  
-  if (!context.mounted) return;
-  
-  if (hasUpdate) {
-    final changelog = UpdateService.getChangelog(isZh ? 'zh' : 'en');
-    
-    if (UpdateService.forceUpdate) {
-      // Force update - no cancel option
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.warning,
-        animType: AnimType.bottomSlide,
-        dismissOnTouchOutside: false,
-        dismissOnBackKeyPress: false,
-        title: isZh ? '必须更新' : 'Update Required',
-        desc: isZh 
-            ? '发现新版本 ${UpdateService.latestVersion}\n\n$changelog\n\n当前版本已不可用，搜索和下载功能已禁用。'
-            : 'New version ${UpdateService.latestVersion}\n\n$changelog\n\nThis version is no longer supported. Search and download are disabled.',
-        btnOkText: isZh ? '立即更新' : 'Update Now',
-        btnOkColor: AppColors.primary,
-        btnOkOnPress: () {
-          // Set blocked flag
-          UpdateService.isBlocked = true;
-          
-          if (UpdateService.downloadUrl != null) {
-            launchUrl(
-              Uri.parse(UpdateService.downloadUrl!),
-              mode: LaunchMode.externalApplication,
-            );
-          }
-        },
-      ).show();
-    } else {
-      // Normal update - with Later option
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.info,
-        animType: AnimType.bottomSlide,
-        title: isZh ? '发现新版本' : 'Update Available',
-        desc: isZh 
-            ? '新版本 ${UpdateService.latestVersion} 已发布\n\n$changelog'
-            : 'Version ${UpdateService.latestVersion} is available\n\n$changelog',
-        btnCancelText: isZh ? '稍后更新' : 'Later',
-        btnCancelColor: Colors.grey,
-        btnCancelOnPress: () {
-          // Will check again after 24 hours (already handled by check interval)
-          UpdateService.dismissUpdate();
-        },
-        btnOkText: isZh ? '立即更新' : 'Update Now',
-        btnOkColor: AppColors.primary,
-        btnOkOnPress: () {
-          if (UpdateService.downloadUrl != null) {
-            launchUrl(
-              Uri.parse(UpdateService.downloadUrl!),
-              mode: LaunchMode.externalApplication,
-            );
-          }
-        },
-      ).show();
-    }
-  } else {
-    // Already up to date
-    AwesomeDialog(
-      context: context,
-      dialogType: DialogType.success,
-      animType: AnimType.bottomSlide,
-      title: isZh ? '已是最新版本' : 'Up to Date',
-      desc: isZh ? '当前版本已是最新版本' : 'You are using the latest version.',
-      btnOkText: isZh ? '好的' : 'OK',
-      btnOkColor: AppColors.primary,
-      btnOkOnPress: () {},
-    ).show();
-  }
-}
+import '../../utils/file_utils.dart';
+import '../../utils/locale_utils.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -225,20 +116,20 @@ class SettingsScreen extends ConsumerWidget {
           if (!Platform.isIOS) ...[
             const SizedBox(height: 24),
             Text(
-              _isZhLocale(context) ? '下载' : 'Downloads',
+              isZhLocale(context) ? '下载' : 'Downloads',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.folder_outlined),
-                title: Text(_isZhLocale(context) ? '下载目录' : 'Download Directory'),
+                title: Text(isZhLocale(context) ? '下载目录' : 'Download Directory'),
                 subtitle: Consumer(
                   builder: (context, ref, _) {
                     if (Platform.isAndroid) {
                       // Android 10+ uses MediaStore, show simplified text
                       return Text(
-                        _isZhLocale(context) ? '系统下载文件夹 (MediaStore)' : 'System Downloads (MediaStore)',
+                        isZhLocale(context) ? '系统下载文件夹 (MediaStore)' : 'System Downloads (MediaStore)',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       );
@@ -246,7 +137,7 @@ class SettingsScreen extends ConsumerWidget {
                     final path = ref.watch(downloadPathProvider);
                     final displayPath = (path != null && path.isNotEmpty)
                         ? path
-                        : (_isZhLocale(context) ? '默认（应用文档目录）' : 'Default (App Documents)');
+                        : (isZhLocale(context) ? '默认（应用文档目录）' : 'Default (App Documents)');
                     return Text(
                       displayPath,
                       maxLines: 1,
@@ -287,7 +178,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // Update Section
           Text(
-            _isZhLocale(context) ? '更新' : 'Update',
+            isZhLocale(context) ? '更新' : 'Update',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -295,18 +186,18 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.system_update),
-              title: Text(_isZhLocale(context) ? '检查更新' : 'Check for Updates'),
+              title: Text(isZhLocale(context) ? '检查更新' : 'Check for Updates'),
               subtitle: FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version ?? '...';
                   return Text(
-                    _isZhLocale(context) ? '当前版本: v$version' : 'Current version: v$version',
+                    isZhLocale(context) ? '当前版本: v$version' : 'Current version: v$version',
                   );
                 },
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => _checkForUpdates(context),
+              onTap: () => UpdateService.showManualCheckDialog(context),
             ),
           ),
           
@@ -400,8 +291,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: const Icon(Icons.share_rounded),
-                  title: Text(_isZhLocale(context) ? '分享应用' : 'Share App'),
-                  subtitle: Text(_isZhLocale(context) ? '推荐给朋友' : 'Recommend to friends'),
+                  title: Text(isZhLocale(context) ? '分享应用' : 'Share App'),
+                  subtitle: Text(isZhLocale(context) ? '推荐给朋友' : 'Recommend to friends'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _shareApp(context),
                 ),
@@ -413,7 +304,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: const Icon(Icons.code),
-                  title: Text(_isZhLocale(context) ? 'GitHub 开源' : 'GitHub Open Source'),
+                  title: Text(isZhLocale(context) ? 'GitHub 开源' : 'GitHub Open Source'),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _launchUrl('https://github.com/shiyi-0x7f/olib-mobile'),
                 ),
@@ -459,7 +350,7 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildAdFreeSection(BuildContext context, WidgetRef ref) {
     final adFreeState = ref.watch(adFreeProvider);
-    final isZh = _isZhLocale(context);
+    final isZh = isZhLocale(context);
     final locale = Localizations.localeOf(context).languageCode;
     
     return Column(
@@ -598,13 +489,8 @@ class SettingsScreen extends ConsumerWidget {
     return allLanguages[key]?['native'] ?? key;
   }
 
-  bool _isZhLocale(BuildContext context) {
-    final locale = Localizations.localeOf(context);
-    return locale.languageCode == 'zh';
-  }
-
   void _showDownloadPathDialog(BuildContext context, WidgetRef ref) {
-    final isZh = _isZhLocale(context);
+    final isZh = isZhLocale(context);
     
     showModalBottomSheet(
       context: context,
@@ -760,7 +646,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _shareApp(BuildContext context) {
-    final isZh = _isZhLocale(context);
+    final isZh = isZhLocale(context);
     final text = isZh
         ? '推荐一款开源电子书阅读器 Olib，由AI构建的第三方客户端！\n下载地址: https://bookbook.space\nGitHub: https://github.com/shiyi-0x7f/olib-mobile'
         : 'Check out Olib - an open-source ebook reader built with AI!\nDownload: https://bookbook.space\nGitHub: https://github.com/shiyi-0x7f/olib-mobile';
@@ -768,7 +654,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showAboutApp(BuildContext context) {
-    final isZh = _isZhLocale(context);
+    final isZh = isZhLocale(context);
     
     showDialog(
       context: context,

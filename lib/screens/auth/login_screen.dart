@@ -36,6 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Check for updates after frame is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
+      _checkLastAccount();
     });
   }
 
@@ -98,6 +99,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    }
+  }
+
+  Future<void> _checkLastAccount() async {
+    final accounts = await ref.read(authProvider.notifier).getSavedAccounts();
+    if (accounts.isNotEmpty && mounted) {
+      final lastAccount = accounts.last;
+      final email = lastAccount['email'] as String?;
+      final password = lastAccount['password'] as String?;
+      
+      if (email != null && password != null) {
+        setState(() {
+          _emailController.text = email;
+          _passwordController.text = password;
+        });
+      }
     }
   }
 

@@ -2,11 +2,12 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:downloadsfolder/downloadsfolder.dart';
 import '../models/book.dart';
 import '../services/zlibrary_api.dart';
 import '../services/storage_service.dart';
 import 'zlibrary_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 enum DownloadStatus { pending, downloading, completed, error }
 
@@ -186,23 +187,48 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
     try {
       final fileName = _buildSafeFileName(book);
-      String tempPath;
       String finalPath;
 
-      if (_shouldUseMediaStore) {
-        // Android 10+: Download to temp directory first, then copy via MediaStore
-        final tempDir = await getTemporaryDirectory();
-        tempPath = '${tempDir.path}/$fileName';
-        // Final path will be determined after copying to Downloads
-        finalPath = tempPath; // Placeholder, will be updated
+      // Determine download directory
+      if (Platform.isAndroid) {
+        // Request MANAGE_EXTERNAL_STORAGE permission for Android 11+
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        
+        if (androidInfo.version.sdkInt >= 30) {
+          // Android 11+: Request full storage access
+          if (!await Permission.manageExternalStorage.isGranted) {
+            final status = await Permission.manageExternalStorage.request();
+            if (!status.isGranted) {
+              throw Exception("需要文件访问权限才能下载。请在设置中授予权限。");
+            }
+          }
+        } else if (androidInfo.version.sdkInt >= 23) {
+          // Android 6-10: Request regular storage permission
+          if (!await Permission.storage.isGranted) {
+            final status = await Permission.storage.request();
+            if (!status.isGranted) {
+              throw Exception("需要存储权限才能下载。");
+            }
+          }
+        }
+        
+        // Use public Downloads folder
+        final downloadsDir = Directory('/storage/emulated/0/Download/Olib');
+        if (!await downloadsDir.exists()) {
+          await downloadsDir.create(recursive: true);
+        }
+        finalPath = '${downloadsDir.path}/$fileName';
+      } else if (Platform.isIOS) {
+        // iOS: Use documents directory
+        final appDocDir = await getApplicationDocumentsDirectory();
+        finalPath = '${appDocDir.path}/$fileName';
       } else {
-        // Other platforms: Use custom path or app documents directory
+        // Desktop: Use custom path or documents
         String baseDir;
         final customPath = await _storage.getDownloadPath();
         
-        if (customPath != null && customPath.isNotEmpty && !Platform.isIOS) {
+        if (customPath != null && customPath.isNotEmpty) {
           baseDir = customPath;
-          // Ensure directory exists
           final dir = Directory(baseDir);
           if (!await dir.exists()) {
             await dir.create(recursive: true);
@@ -211,9 +237,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
           final appDocDir = await getApplicationDocumentsDirectory();
           baseDir = appDocDir.path;
         }
-        
-        tempPath = '$baseDir/$fileName';
-        finalPath = tempPath;
+        finalPath = '$baseDir/$fileName';
       }
 
       // Update to downloading
@@ -223,11 +247,11 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       final cancelToken = CancelToken();
       _cancelTokens[id] = cancelToken;
 
-      // Start download to temp/target path
+      // Start download directly to final path
       await _api.downloadBook(
         book.id.toString(),
         book.hash ?? '',
-        tempPath,
+        finalPath,
         onProgress: (received, total) {
           if (total != -1) {
             final progress = received / total;
@@ -236,70 +260,6 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         },
         cancelToken: cancelToken,
       );
-
-      // On Android 10+, copy to public Downloads folder via MediaStore
-      if (_shouldUseMediaStore) {
-        try {
-          final tempFile = File(tempPath);
-          // copyFileIntoDownloadFolder returns bool? in version 3.0.0
-          final success = await copyFileIntoDownloadFolder(
-            tempFile.path,
-            fileName,
-          );
-          
-          if (success == true) {
-            // File was copied to Downloads folder via MediaStore
-            // We need to determine the public Download path. 
-            // getDownloadsDirectory() returns the app-private path on Android, so we can't use it.
-            // valid path example: /storage/emulated/0/Download
-            // externalDir example: /storage/emulated/0/Android/data/com.example/files
-            
-            String? downloadsPath;
-            try {
-              final externalDir = await getExternalStorageDirectory();
-              if (externalDir != null) {
-                final path = externalDir.path;
-                // Find where the app-specific part starts
-                final androidIndex = path.indexOf('/Android/data');
-                if (androidIndex != -1) {
-                  // Extract the root (e.g., /storage/emulated/0)
-                  final root = path.substring(0, androidIndex);
-                  downloadsPath = '$root/Download';
-                }
-              }
-            } catch (_) {
-              // Ignore errors, fall back to default
-            }
-            
-            // Fallback if we couldn't derive the path
-            downloadsPath ??= '/storage/emulated/0/Download';
-            
-            finalPath = '$downloadsPath/$fileName';
-          } else {
-            // Fallback: keep file in app directory
-            final appDocDir = await getApplicationDocumentsDirectory();
-            final fallbackPath = '${appDocDir.path}/$fileName';
-            await tempFile.copy(fallbackPath);
-            finalPath = fallbackPath;
-          }
-          
-          // Clean up temp file
-          if (await tempFile.exists()) {
-            await tempFile.delete();
-          }
-        } catch (e) {
-          // If MediaStore fails, keep file in temp location
-          // Try to move to app documents as fallback
-          final appDocDir = await getApplicationDocumentsDirectory();
-          final fallbackPath = '${appDocDir.path}/$fileName';
-          final tempFile = File(tempPath);
-          if (await tempFile.exists()) {
-            await tempFile.copy(fallbackPath);
-            await tempFile.delete();
-          }
-          finalPath = fallbackPath;
-        }
-      }
 
       // Complete
       _updateTask(id, (t) => t.copyWith(

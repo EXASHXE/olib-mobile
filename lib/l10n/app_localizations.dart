@@ -147,6 +147,14 @@ class AppLocalizations {
       'loading_similar_books': 'Loading similar books...',
       'no_similar_books': 'No similar books found',
       'no_similar_books_message': 'We could not find any similar books for this title',
+            
+      // Dialogs
+      'file_details': 'File Details',
+      'book_name': 'Book Name',
+      'path': 'Path',
+      'delete_confirm': 'Delete File?',
+      'delete_desc': 'This will delete the file from your device.',
+      'open_folder_failed': 'Could not open download folder directly. Please check your "Download" folder app.',
     },
     
     'zh': {
@@ -283,6 +291,14 @@ class AppLocalizations {
       'loading_similar_books': '正在加载相似书籍...',
       'no_similar_books': '未找到相似书籍',
       'no_similar_books_message': '我们没有找到相关的相似书籍推荐',
+      
+      // Dialogs
+      'file_details': '文件详情',
+      'book_name': '书名',
+      'path': '路径',
+      'delete_confirm': '删除文件？',
+      'delete_desc': '这将从您的设备中删除该文件。',
+      'open_folder_failed': '无法直接打开下载文件夹。请检查您的文件管理应用。',
     },
     
     'zh_TW': {
@@ -365,6 +381,14 @@ class AppLocalizations {
       'select_network': '選擇線路',
       'custom_domain': '自訂網域',
       'recheck': '重新檢測',
+      
+      // Dialogs
+      'file_details': '檔案詳情',
+      'book_name': '書名',
+      'path': '路徑',
+      'delete_confirm': '刪除檔案？',
+      'delete_desc': '這將從您的裝置中刪除該檔案。',
+      'open_folder_failed': '無法直接開啟下載資料夾。請檢查您的檔案管理應用程式。',
     },
     
     'fr': {
@@ -447,6 +471,14 @@ class AppLocalizations {
       'select_network': 'Sélectionner le réseau',
       'custom_domain': 'Domaine personnalisé',
       'recheck': 'Revérifier',
+      
+      // Dialogs
+      'file_details': 'Détails du fichier',
+      'book_name': 'Titre du livre',
+      'path': 'Chemin',
+      'delete_confirm': 'Supprimer le fichier ?',
+      'delete_desc': 'Ceci supprimera le fichier de votre appareil.',
+      'open_folder_failed': "Impossible d'ouvrir le dossier de téléchargement directement.",
     },
     
     'es': {
@@ -547,6 +579,14 @@ class AppLocalizations {
       'select_network': 'Seleccionar red',
       'custom_domain': 'Dominio personalizado',
       'recheck': 'Verificar de nuevo',
+      
+      // Dialogs
+      'file_details': 'Detalles del archivo',
+      'book_name': 'Título del libro',
+      'path': 'Ruta',
+      'delete_confirm': '¿Eliminar archivo?',
+      'delete_desc': 'Esto eliminará el archivo de su dispositivo.',
+      'open_folder_failed': 'No se pudo abrir la carpeta de descargas directamente.',
     },
     
     'de': {
@@ -647,6 +687,14 @@ class AppLocalizations {
       'select_network': 'Netzwerk wählen',
       'custom_domain': 'Benutzerdefinierte Domain',
       'recheck': 'Erneut prüfen',
+      
+      // Dialogs
+      'file_details': 'Dateidetails',
+      'book_name': 'Buchtitel',
+      'path': 'Pfad',
+      'delete_confirm': 'Datei löschen?',
+      'delete_desc': 'Dies wird die Datei von Ihrem Gerät löschen.',
+      'open_folder_failed': 'Download-Ordner konnte nicht direkt geöffnet werden.',
     },
     
     'pt': {
@@ -747,6 +795,14 @@ class AppLocalizations {
       'select_network': 'Selecionar rede',
       'custom_domain': 'Domínio personalizado',
       'recheck': 'Verificar novamente',
+      
+      // Dialogs
+      'file_details': 'Detalhes do arquivo',
+      'book_name': 'Nome do livro',
+      'path': 'Caminho',
+      'delete_confirm': 'Excluir arquivo?',
+      'delete_desc': 'Isso excluirá o arquivo do seu dispositivo.',
+      'open_folder_failed': 'Não foi possível abrir a pasta de downloads diretamente.',
     },
     
     'ru': {
@@ -796,8 +852,9 @@ class AppLocalizations {
       'start_searching': 'Начать поиск',
       'enter_search_hint': 'Введите название, автора или ключевое слово',
       'no_results': 'Ничего не найдено',
-      'try_different_keywords': 'Попробуйте другие ключевые слова',
-      'searching_books': 'Поиск книг...',
+      'file_details': 'Детали файла',
+      'book_name': 'Название книги',
+      'path': 'Путь',
       'no_favorites': 'Нет избранного',
       'save_books_hint': 'Сохраняйте книги здесь',
       'loading_favorites': 'Загрузка избранного...',

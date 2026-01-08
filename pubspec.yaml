@@ -62,10 +62,10 @@ dependencies:
   url_launcher: ^6.2.5
   unity_ads_plugin: ^0.3.12
   package_info_plus: ^8.0.0
+  device_info_plus: ^10.0.0
   file_picker: ^8.0.0
   flutter_inappwebview: ^6.1.5
   flutter_inappwebview_windows: ^0.6.0
-  downloadsfolder: ^1.2.0  # MediaStore API for Android 10+ Downloads folder
   
   # Data Models
   freezed_annotation: ^2.4.1
@@ -87,6 +87,7 @@ dev_dependencies:
   
   # App Icon Generator
   flutter_launcher_icons: ^0.14.2
+  msix: ^3.16.12
 
 # App Icon Configuration
 flutter_launcher_icons:
@@ -105,6 +106,18 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "assets/icons/z.png"
+
+# MSIX Packaging Configuration for Windows
+msix_config:
+  display_name: Olib
+  publisher: CN=Olib Team
+  publisher_display_name: Olib Team
+  identity_name: com.olib.mobile
+  msix_version: 1.0.3.0
+  logo_path: assets/icons/z.png
+  capabilities: internetClient, internetClientServer
+  languages: en-us, zh-cn, ja-jp, ko-kr
+  
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

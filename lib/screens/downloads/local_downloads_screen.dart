@@ -1,21 +1,15 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:downloadsfolder/downloadsfolder.dart';
 import '../../providers/download_provider.dart';
 import '../../widgets/empty_state.dart';
 import '../../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
-
-/// Check if platform supports opening folder in file manager
-bool get _canOpenFolder {
-  if (kIsWeb) return false;
-  return Platform.isWindows || Platform.isMacOS || Platform.isLinux || Platform.isAndroid;
-}
+import '../../utils/file_utils.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
 class LocalDownloadsScreen extends ConsumerWidget {
   const LocalDownloadsScreen({super.key});
@@ -41,7 +35,13 @@ class LocalDownloadsScreen extends ConsumerWidget {
                   final success = await openDownloadFolder();
                   if (!success && context.mounted) {
                      ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Could not open download folder')),
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context).get('open_folder_failed') ?? 'Could not open download folder directly.'),
+                        action: SnackBarAction(
+                           label: 'OK',
+                           onPressed: () {},
+                        ),
+                      ),
                     );
                   }
                 } catch (e) {
@@ -127,7 +127,7 @@ class _CompletedDownloads extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(downloadProvider).where((t) => t.status == DownloadStatus.completed || t.status == DownloadStatus.error).toList(); // Include errors here or separate? Usually errors act as stopped.
+    final tasks = ref.watch(downloadProvider).where((t) => t.status == DownloadStatus.completed || t.status == DownloadStatus.error).toList();
 
     if (tasks.isEmpty) {
       return EmptyState(
@@ -149,6 +149,28 @@ class _DownloadItem extends ConsumerWidget {
   final DownloadTask task;
 
   const _DownloadItem({required this.task});
+  
+  Future<void> _openFile(BuildContext context) async {
+    if (task.filePath == null) return;
+    
+    // Check file existence
+    final file = File(task.filePath!);
+    if (!await file.exists()) {
+       if (context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('File not found at ${task.filePath}')),
+         );
+       }
+       return;
+    }
+
+    final result = await OpenFilex.open(task.filePath!);
+    if (result.type != ResultType.done && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${result.message} (${result.type})')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -170,8 +192,8 @@ class _DownloadItem extends ConsumerWidget {
         ],
       ),
       child: InkWell(
-        onTap: isCompleted && task.filePath != null && _canOpenFolder
-            ? () => _openFolder(context, task.filePath!)
+        onTap: isCompleted && task.filePath != null
+            ? () => _openFile(context)
             : null,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -213,7 +235,7 @@ class _DownloadItem extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      task.book.author ?? 'Unknown',
+                      task.book.author ?? AppLocalizations.of(context).get('unknown_author') ?? 'Unknown',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -221,7 +243,7 @@ class _DownloadItem extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     
-                    // Progress Bar (Multi-color)
+                    // Progress Bar
                     if (isDownloading) ...[
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
@@ -269,15 +291,6 @@ class _DownloadItem extends ConsumerWidget {
                   onPressed: () => ref.read(downloadProvider.notifier).cancelDownload(task.id),
                 ),
                 
-              if (isCompleted && _canOpenFolder)
-                 IconButton(
-                  icon: const Icon(Icons.folder_open_rounded, color: AppColors.primary),
-                  tooltip: 'Open Folder',
-                  onPressed: () {
-                     if (task.filePath != null) _openFolder(context, task.filePath!);
-                  },
-                ),
-                
               if (!isDownloading)
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
@@ -294,17 +307,16 @@ class _DownloadItem extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      if (_canOpenFolder)
-                        PopupMenuItem(
-                          value: 'folder',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.folder_open_rounded, size: 20, color: AppColors.primary),
-                              const SizedBox(width: 8),
-                              Text(AppLocalizations.of(context).get('open_folder')),
-                            ],
-                          ),
+                      PopupMenuItem(
+                        value: 'details',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline, size: 20, color: Colors.blueGrey),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context).get('file_details') ?? 'File Details'),
+                          ],
                         ),
+                      ),
                       PopupMenuItem(
                         value: 'share',
                         child: Row(
@@ -312,16 +324,6 @@ class _DownloadItem extends ConsumerWidget {
                             const Icon(Icons.share_rounded, size: 20, color: AppColors.accent),
                             const SizedBox(width: 8),
                             Text(AppLocalizations.of(context).get('share')),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'copy',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.copy_rounded, size: 20, color: AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Text(AppLocalizations.of(context).get('copy_path')),
                           ],
                         ),
                       ),
@@ -346,36 +348,84 @@ class _DownloadItem extends ConsumerWidget {
     );
   }
 
-  void _openFolder(BuildContext context, String filePath) {
-    // Get parent directory
-    final file = File(filePath);
-    final folder = file.parent.path;
-    OpenFilex.open(folder);
+  void _showFileInfo(BuildContext context, DownloadTask task) async {
+    final file = File(task.filePath ?? '');
+    int? size;
+    try {
+      if (await file.exists()) {
+        size = await file.length();
+      }
+    } catch (_) {}
+
+    String sizeStr = AppLocalizations.of(context).get('unknown') ?? 'Unknown';
+    if (size != null) {
+      if (size > 1024 * 1024) {
+        sizeStr = '${(size / (1024 * 1024)).toStringAsFixed(2)} MB';
+      } else if (size > 1024) {
+        sizeStr = '${(size / 1024).toStringAsFixed(2)} KB';
+      } else {
+        sizeStr = '$size B';
+      }
+    }
+
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.info,
+      animType: AnimType.bottomSlide,
+      title: AppLocalizations.of(context).get('file_details') ?? 'File Details',
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('${AppLocalizations.of(context).get('book_name')}:', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(task.book.title),
+            const SizedBox(height: 8),
+            Text('${AppLocalizations.of(context).get('path')}:', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(task.filePath ?? 'Unknown'),
+            const SizedBox(height: 8),
+            Text('${AppLocalizations.of(context).get('file_size')}:', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(sizeStr),
+          ],
+        ),
+      ),
+      btnOkOnPress: () {},
+    ).show();
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, String taskId) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      animType: AnimType.bottomSlide,
+      title: AppLocalizations.of(context).get('delete_confirm') ?? 'Delete File?',
+      desc: AppLocalizations.of(context).get('delete_desc') ?? 'This will delete the file from your device.',
+      btnCancelText: AppLocalizations.of(context).get('cancel'),
+      btnOkText: AppLocalizations.of(context).get('delete'),
+      btnCancelOnPress: () {},
+      btnOkOnPress: () {
+        ref.read(downloadProvider.notifier).removeTask(taskId);
+      },
+      btnOkColor: AppColors.error,
+    ).show();
   }
 
   void _handleMenuAction(BuildContext context, WidgetRef ref, String action) {
     switch (action) {
       case 'open':
-        if (task.filePath != null) OpenFilex.open(task.filePath!);
+        _openFile(context);
         break;
-      case 'folder':
-        if (task.filePath != null) _openFolder(context, task.filePath!);
+      case 'details':
+        if (task.filePath != null) _showFileInfo(context, task);
         break;
       case 'share':
         if (task.filePath != null) {
           Share.shareXFiles([XFile(task.filePath!)], text: task.book.title);
         }
         break;
-      case 'copy':
-        if (task.filePath != null) {
-          Clipboard.setData(ClipboardData(text: task.filePath!));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Path copied to clipboard')),
-          );
-        }
-        break;
       case 'delete':
-        ref.read(downloadProvider.notifier).removeTask(task.id);
+        _confirmDelete(context, ref, task.id);
         break;
     }
   }

@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'hive_service.dart';
 
 /// Update checker service for checking new app versions
@@ -115,5 +117,108 @@ class UpdateService {
   static String getChangelog(String locale) {
     if (changelog == null) return '';
     return changelog![locale] ?? changelog!['en'] ?? '';
+  }
+  
+  /// Show manual update check dialog (for Settings page)
+  /// This handles the loading, checking, and result display in one call
+  static Future<void> showManualCheckDialog(BuildContext context) async {
+    final locale = Localizations.localeOf(context).languageCode;
+    final isZh = locale == 'zh';
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Text(isZh ? '正在检查更新...' : 'Checking for updates...'),
+          ],
+        ),
+      ),
+    );
+    
+    // Force check (bypass cache)
+    final update = await checkForUpdate(force: true);
+    
+    // Close loading dialog
+    if (context.mounted) Navigator.of(context).pop();
+    
+    if (!context.mounted) return;
+    
+    // Import these dynamically to avoid circular dependencies
+    final primaryColor = Theme.of(context).primaryColor;
+    
+    if (update) {
+      final log = getChangelog(isZh ? 'zh' : 'en');
+      
+      showDialog(
+        context: context,
+        barrierDismissible: !forceUpdate,
+        builder: (ctx) => AlertDialog(
+          title: Text(forceUpdate 
+              ? (isZh ? '必须更新' : 'Update Required')
+              : (isZh ? '发现新版本' : 'Update Available')),
+          content: Text(forceUpdate
+              ? (isZh 
+                  ? '发现新版本 $latestVersion\n\n$log\n\n当前版本已不可用。'
+                  : 'New version $latestVersion\n\n$log\n\nThis version is no longer supported.')
+              : (isZh 
+                  ? '新版本 $latestVersion 已发布\n\n$log'
+                  : 'Version $latestVersion is available\n\n$log')),
+          actions: [
+            if (!forceUpdate)
+              TextButton(
+                onPressed: () {
+                  dismissUpdate();
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(isZh ? '稍后更新' : 'Later'),
+              ),
+            ElevatedButton(
+              onPressed: () {
+                if (!forceUpdate) Navigator.of(ctx).pop();
+                if (downloadUrl != null) {
+                  // Use url_launcher
+                  _launchUpdateUrl();
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+              child: Text(isZh ? '立即更新' : 'Update Now', style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Already up to date
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(isZh ? '已是最新版本' : 'Up to Date'),
+          content: Text(isZh ? '当前版本已是最新版本' : 'You are using the latest version.'),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+              child: Text(isZh ? '好的' : 'OK', style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+  
+  static Future<void> _launchUpdateUrl() async {
+    if (downloadUrl == null) return;
+    final uri = Uri.parse(downloadUrl!);
+    // Dynamic import to avoid issues
+    try {
+      // ignore: depend_on_referenced_packages
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Failed to launch URL: $e');
+    }
   }
 }
