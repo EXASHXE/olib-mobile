@@ -389,7 +389,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 220,
-              childAspectRatio: 0.62, // Taller cards
+              childAspectRatio: 0.75, // Wider cards, more space for title
               crossAxisSpacing: 16,
               mainAxisSpacing: 20,
             ),

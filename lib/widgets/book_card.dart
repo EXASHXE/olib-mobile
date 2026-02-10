@@ -64,7 +64,7 @@ class _BookCardState extends State<BookCard> {
                       if (widget.book.cover != null && widget.book.cover!.isNotEmpty && _shouldLoadImage)
                         CachedNetworkImage(
                           imageUrl: widget.book.cover!,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           memCacheWidth: 300,
                           fadeInDuration: const Duration(milliseconds: 300),
                           fadeOutDuration: const Duration(milliseconds: 100),
@@ -87,26 +87,20 @@ class _BookCardState extends State<BookCard> {
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Level 2: Category/Tag (Orange, Small) - ABOVE Title
-                        _buildMetaRow(),
-                        
-                        const SizedBox(height: 4),
-
                         // Level 1: Title (Black, Bold, Large)
-                        Expanded(
-                          child: Text(
-                            widget.book.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              height: 1.2,
-                              fontSize: 14,
-                            ),
+                        Text(
+                          widget.book.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            height: 1.2,
+                            fontSize: 14,
                           ),
                         ),
-                        
-                        // Level 3: Author (Grey, Secondary)
+
+                        // Level 2: Author (Grey, Secondary)
                         if (widget.book.author != null && widget.book.author!.isNotEmpty)
                           Text(
                             widget.book.author!,
@@ -116,10 +110,15 @@ class _BookCardState extends State<BookCard> {
                               fontSize: 11,
                             ),
                           ),
-                          
-                        const SizedBox(height: 8),
 
-                        // Level 3: Bottom row (Stars/Size)
+                        const SizedBox(height: 4),
+
+                        // Level 3: Meta row (extension + year)
+                        _buildMetaRow(),
+
+                        const SizedBox(height: 4),
+
+                        // Level 4: Bottom row (Stars/Size)
                         _buildBottomRow(),
                       ],
                     ),
