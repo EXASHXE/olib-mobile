@@ -41,13 +41,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Initialize - restore session from stored credentials
   /// Now waits for API verification before setting authenticated state
+  /// Auto-login with stored password if session is expired
   Future<void> _init() async {
     state = state.copyWith(isLoading: true);
-    
+
     try {
       final credentials = await _storage.getCredentials();
       final userId = credentials['userId'];
       final userKey = credentials['userKey'];
+      final email = credentials['email'];
+      final password = credentials['password'];
 
       if (userId != null && userKey != null) {
         // Verify stored credentials by calling API
@@ -60,23 +63,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
             final user = User.fromJson(userData);
             state = AuthState(user: user);
           } else {
-            // API returned failure - credentials invalid, clear and require login
-            await _storage.clearCredentials();
-            state = AuthState();
+            // Session expired, try auto-login with stored password if available
+            if (email != null && password != null) {
+              final autoLoginSuccess = await login(email, password);
+              if (!autoLoginSuccess) {
+                // Auto-login failed, clear credentials and require manual login
+                await _storage.clearCredentials();
+                state = AuthState();
+              }
+            } else {
+              // No password stored, clear credentials and require login
+              await _storage.clearCredentials();
+              state = AuthState();
+            }
           }
         } catch (e) {
-          // Network error - fall back to stored credentials
-          // Allow offline access with cached user info
-          final email = credentials['email'];
-          final name = credentials['name'];
-          final user = User(
-            id: userId,
-            email: email ?? '',
-            name: name ?? 'User',
-            remixUserkey: userKey,
-          );
-          state = AuthState(user: user);
-          print('Profile verification failed, using cached credentials: $e');
+          // Network error or API error - try auto-login with stored password if available
+          if (email != null && password != null) {
+            final autoLoginSuccess = await login(email, password);
+            if (!autoLoginSuccess) {
+              // Auto-login failed, fall back to cached credentials for offline access
+              final name = credentials['name'];
+              final user = User(
+                id: userId,
+                email: email,
+                name: name ?? 'User',
+                remixUserkey: userKey,
+              );
+              state = AuthState(user: user);
+              print('Auto-login failed, using cached credentials: $e');
+            }
+          } else {
+            // No password stored, fall back to cached credentials
+            final name = credentials['name'];
+            final user = User(
+              id: userId,
+              email: email ?? '',
+              name: name ?? 'User',
+              remixUserkey: userKey,
+            );
+            state = AuthState(user: user);
+            print('Profile verification failed, using cached credentials: $e');
+          }
         }
       } else {
         // No stored credentials, need login
