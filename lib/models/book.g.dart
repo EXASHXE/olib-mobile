@@ -1,0 +1,78 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'book.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$BookImpl _$$BookImplFromJson(Map<String, dynamic> json) => _$BookImpl(
+      id: _toInt(json['id']),
+      contentType: json['content_type'] as String?,
+      title: json['title'] as String,
+      author: json['author'] as String?,
+      volume: json['volume'] as String?,
+      year: _toInt(json['year']),
+      edition: json['edition'] as String?,
+      publisher: json['publisher'] as String?,
+      identifier: json['identifier'] as String?,
+      language: json['language'] as String?,
+      pages: _toInt(json['pages']),
+      series: json['series'] as String?,
+      cover: json['cover'] as String?,
+      termsHash: json['terms_hash'] as String?,
+      active: _toInt(json['active']),
+      deleted: _toInt(json['deleted']),
+      filesize: _toInt(json['filesize']),
+      filesizeString: json['filesizeString'] as String?,
+      extension: json['extension'] as String?,
+      md5: json['md5'] as String?,
+      sha256: json['sha256'] as String?,
+      href: json['href'] as String?,
+      hash: json['hash'] as String?,
+      kindleAvailable: json['kindleAvailable'] as bool?,
+      sendToEmailAvailable: json['sendToEmailAvailable'] as bool?,
+      interestScore: json['interestScore'] as String?,
+      qualityScore: json['qualityScore'] as String?,
+      dl: json['dl'] as String?,
+      readOnlineUrl: json['readOnlineUrl'] as String?,
+      description: json['description'] as String?,
+      isUserSavedBook: json['_isUserSavedBook'] as bool?,
+      readOnlineAvailable: json['readOnlineAvailable'] as bool?,
+    );
+
+Map<String, dynamic> _$$BookImplToJson(_$BookImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'content_type': instance.contentType,
+      'title': instance.title,
+      'author': instance.author,
+      'volume': instance.volume,
+      'year': instance.year,
+      'edition': instance.edition,
+      'publisher': instance.publisher,
+      'identifier': instance.identifier,
+      'language': instance.language,
+      'pages': instance.pages,
+      'series': instance.series,
+      'cover': instance.cover,
+      'terms_hash': instance.termsHash,
+      'active': instance.active,
+      'deleted': instance.deleted,
+      'filesize': instance.filesize,
+      'filesizeString': instance.filesizeString,
+      'extension': instance.extension,
+      'md5': instance.md5,
+      'sha256': instance.sha256,
+      'href': instance.href,
+      'hash': instance.hash,
+      'kindleAvailable': instance.kindleAvailable,
+      'sendToEmailAvailable': instance.sendToEmailAvailable,
+      'interestScore': instance.interestScore,
+      'qualityScore': instance.qualityScore,
+      'dl': instance.dl,
+      'readOnlineUrl': instance.readOnlineUrl,
+      'description': instance.description,
+      '_isUserSavedBook': instance.isUserSavedBook,
+      'readOnlineAvailable': instance.readOnlineAvailable,
+    };
