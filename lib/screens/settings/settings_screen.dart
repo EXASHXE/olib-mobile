@@ -19,7 +19,9 @@ import '../../theme/app_colors.dart';
 import '../../widgets/domain_selector.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/file_utils.dart';
-import '../../utils/locale_utils.dart';
+import '../../utils/locale_utils.dart' as locale_utils;
+
+
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -116,20 +118,20 @@ class SettingsScreen extends ConsumerWidget {
           if (!Platform.isIOS) ...[
             const SizedBox(height: 24),
             Text(
-              isZhLocale(context) ? '下载' : 'Downloads',
+              locale_utils.isZhLocale(context) ? '下载' : 'Downloads',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.folder_outlined),
-                title: Text(isZhLocale(context) ? '下载目录' : 'Download Directory'),
+                title: Text(locale_utils.isZhLocale(context) ? '下载目录' : 'Download Directory'),
                 subtitle: Consumer(
                   builder: (context, ref, _) {
                     if (Platform.isAndroid) {
                       // Android 10+ uses MediaStore, show simplified text
                       return Text(
-                        isZhLocale(context) ? '系统下载文件夹 (MediaStore)' : 'System Downloads (MediaStore)',
+                        locale_utils.isZhLocale(context) ? '系统下载文件夹 (MediaStore)' : 'System Downloads (MediaStore)',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       );
@@ -137,7 +139,7 @@ class SettingsScreen extends ConsumerWidget {
                     final path = ref.watch(downloadPathProvider);
                     final displayPath = (path != null && path.isNotEmpty)
                         ? path
-                        : (isZhLocale(context) ? '默认（应用文档目录）' : 'Default (App Documents)');
+                        : (locale_utils.isZhLocale(context) ? '默认（应用文档目录）' : 'Default (App Documents)');
                     return Text(
                       displayPath,
                       maxLines: 1,
@@ -178,7 +180,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // Update Section
           Text(
-            isZhLocale(context) ? '更新' : 'Update',
+            locale_utils.isZhLocale(context) ? '更新' : 'Update',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -186,13 +188,13 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.system_update),
-              title: Text(isZhLocale(context) ? '检查更新' : 'Check for Updates'),
+              title: Text(locale_utils.isZhLocale(context) ? '检查更新' : 'Check for Updates'),
               subtitle: FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version ?? '...';
                   return Text(
-                    isZhLocale(context) ? '当前版本: v$version' : 'Current version: v$version',
+                    locale_utils.isZhLocale(context) ? '当前版本: v$version' : 'Current version: v$version',
                   );
                 },
               ),
@@ -291,8 +293,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: const Icon(Icons.share_rounded),
-                  title: Text(isZhLocale(context) ? '分享应用' : 'Share App'),
-                  subtitle: Text(isZhLocale(context) ? '推荐给朋友' : 'Recommend to friends'),
+                  title: Text(locale_utils.isZhLocale(context) ? '分享应用' : 'Share App'),
+                  subtitle: Text(locale_utils.isZhLocale(context) ? '推荐给朋友' : 'Recommend to friends'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _shareApp(context),
                 ),
@@ -304,7 +306,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: const Icon(Icons.code),
-                  title: Text(isZhLocale(context) ? 'GitHub 开源' : 'GitHub Open Source'),
+                  title: Text(locale_utils.isZhLocale(context) ? 'GitHub 开源' : 'GitHub Open Source'),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _launchUrl('https://github.com/shiyi-0x7f/olib-mobile'),
                 ),
@@ -350,7 +352,7 @@ class SettingsScreen extends ConsumerWidget {
 
   Widget _buildAdFreeSection(BuildContext context, WidgetRef ref) {
     final adFreeState = ref.watch(adFreeProvider);
-    final isZh = isZhLocale(context);
+    final isZh = locale_utils.isZhLocale(context);
     final locale = Localizations.localeOf(context).languageCode;
     
     return Column(
@@ -485,12 +487,12 @@ class SettingsScreen extends ConsumerWidget {
 
   String _getLanguageDisplayName(Locale? locale) {
     if (locale == null) return 'System';
-    final key = getLocaleKey(locale);
-    return allLanguages[key]?['native'] ?? key;
+    final key = locale_utils.getLocaleKey(locale);
+    return allLanguages[key]?['native'] ?? key ?? locale.languageCode;
   }
 
   void _showDownloadPathDialog(BuildContext context, WidgetRef ref) {
-    final isZh = isZhLocale(context);
+    final isZh = locale_utils.isZhLocale(context);
     
     showModalBottomSheet(
       context: context,
@@ -646,7 +648,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _shareApp(BuildContext context) {
-    final isZh = isZhLocale(context);
+    final isZh = locale_utils.isZhLocale(context);
     final text = isZh
         ? '推荐一款开源电子书阅读器 Olib，由AI构建的第三方客户端！\n下载地址: https://bookbook.space\nGitHub: https://github.com/shiyi-0x7f/olib-mobile'
         : 'Check out Olib - an open-source ebook reader built with AI!\nDownload: https://bookbook.space\nGitHub: https://github.com/shiyi-0x7f/olib-mobile';
@@ -654,7 +656,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showAboutApp(BuildContext context) {
-    final isZh = isZhLocale(context);
+    final isZh = locale_utils.isZhLocale(context);
     
     showDialog(
       context: context,
@@ -757,7 +759,7 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showLanguageDialog(BuildContext context, WidgetRef ref) {
     final currentLocale = ref.read(localeProvider);
-    final currentKey = currentLocale != null ? getLocaleKey(currentLocale) : null;
+    final currentKey = currentLocale != null ? locale_utils.getLocaleKey(currentLocale) : null;
     
     showModalBottomSheet(
       context: context,
@@ -846,7 +848,7 @@ class SettingsScreen extends ConsumerWidget {
         if (key == null) {
           ref.read(localeProvider.notifier).setLocale(null);
         } else {
-          ref.read(localeProvider.notifier).setLocale(parseLocaleKey(key));
+          ref.read(localeProvider.notifier).setLocale(locale_utils.parseLocaleKey(key));
         }
         Navigator.pop(context);
       },

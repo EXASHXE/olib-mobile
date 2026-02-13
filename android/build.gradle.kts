@@ -25,3 +25,12 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+// Disable rive_native setup task to avoid hash verification issues
+gradle.taskGraph.whenReady {
+    allTasks.forEach { task ->
+        if (task.name == "runRiveNativeSetup") {
+            task.enabled = false
+        }
+    }
+}

@@ -43,6 +43,21 @@ class ZLibraryApi {
   /// 获取当前域名
   String get domain => _domain;
 
+  Future<Map<String, dynamic>> getSimilarBooks(String bookId, String hashId) async {
+    // 实现相似书籍的API调用
+    try {
+      final response = await _dio.get(
+        '/similar',
+        queryParameters: {
+          'bookId': bookId,
+          'hashId': hashId,
+        },
+      );
+      return response.data;
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
   // ==================== 认证方法 ====================
 
   /// 使用邮箱密码登录

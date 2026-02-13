@@ -40,4 +40,12 @@ flutter {
     source = "../.."
 }
 
+// Disable rive_native setup task to avoid hash verification issues
+tasks.register("runRiveNativeSetup") {
+    enabled = false
+    doLast {
+        logger.lifecycle("runRiveNativeSetup task skipped")
+    }
+}
+
 

@@ -251,7 +251,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       await _api.downloadBook(
         book.id.toString(),
         book.hash ?? '',
-        finalPath,
+        filePath: finalPath,
         onProgress: (received, total) {
           if (total != -1) {
             final progress = received / total;

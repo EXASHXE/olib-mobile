@@ -56,7 +56,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
     });
     
     try {
-      final response = await api.Similar(args.bookId.toString(), args.hashId);
+      final response = await api.getSimilarBooks(args.bookId.toString(), args.hashId);
       final success = response['success'];
       
       if ((success == true || success == 1) && response.containsKey('books')) {
