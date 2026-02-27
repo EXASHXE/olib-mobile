@@ -55,9 +55,9 @@ class _BookCardState extends State<BookCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Cover Image (Expanded)
+                // 1. Cover Image (Expanded) - 改为 flex: 2，与信息区等分
                 Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -80,7 +80,7 @@ class _BookCardState extends State<BookCard> {
                   ),
                 ),
 
-                // 2. Info Content
+                // 2. Info Content - 改为 flex: 2，与封面等分
                 Expanded(
                   flex: 2,
                   child: Padding(
@@ -90,14 +90,14 @@ class _BookCardState extends State<BookCard> {
                       children: [
                         // Level 2: Category/Tag (Orange, Small) - ABOVE Title
                         _buildMetaRow(),
-                        
+
                         const SizedBox(height: 4),
 
-                        // Level 1: Title (Black, Bold, Large)
+                        // Level 1: Title (Black, Bold, Large) - 增加到3行
                         Expanded(
                           child: Text(
                             widget.book.title,
-                            maxLines: 2,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               height: 1.2,

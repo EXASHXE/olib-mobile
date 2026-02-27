@@ -136,6 +136,9 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   }
 
   Future<void> _checkForUpdates() async {
+    // 禁用版本更新检查
+    return;
+
     final hasUpdate = await UpdateService.checkForUpdate();
 
     if (!hasUpdate || !mounted) return;
@@ -389,7 +392,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 220,
-              childAspectRatio: 0.62, // Taller cards
+              childAspectRatio: 0.75, // 更高的卡片，封面和标题都能显示更多
               crossAxisSpacing: 16,
               mainAxisSpacing: 20,
             ),

@@ -336,7 +336,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         gridDelegate:
                                             const SliverGridDelegateWithMaxCrossAxisExtent(
                                           maxCrossAxisExtent: 220,
-                                          childAspectRatio: 0.65,
+                                          childAspectRatio: 0.75, // 与主页一致，更高的卡片
                                           crossAxisSpacing: 12,
                                           mainAxisSpacing: 12,
                                         ),

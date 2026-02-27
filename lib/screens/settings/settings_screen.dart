@@ -17,7 +17,7 @@ import '../../widgets/banner_ad.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/domain_selector.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations.dart' hide getLocaleKey, parseLocaleKey;
 import '../../utils/file_utils.dart';
 import '../../utils/locale_utils.dart';
 

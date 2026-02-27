@@ -6,8 +6,7 @@ bool isZhLocale(BuildContext context) {
 }
 
 /// Get locale key for comparison (e.g., 'en', 'zh', 'zh_TW')
-String? getLocaleKey(Locale? locale) {
-  if (locale == null) return null;
+String getLocaleKey(Locale locale) {
   if (locale.countryCode != null && locale.countryCode!.isNotEmpty) {
     return '${locale.languageCode}_${locale.countryCode}';
   }
